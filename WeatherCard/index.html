@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta name="description" content="" />
+  <meta charset="utf-8">
+  <title>WeatherCard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="">
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+  <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+  <script>
+    // Config values
+    var configZip = "97401";
+    var configLat = "44.052071";
+    var configLon = "-123.086754";
+
+    // Code : Icon dictionary
+    var weatherConditions = {
+      "1000": "113",
+		  "1003": "116",
+	    "1006": "119",
+      "1009": "122",
+      "1030": "143",
+      "1063": "176",
+      "1066": "179",
+      "1069": "182",
+      "1072": "185",
+      "1087": "200",
+      "1114": "227",
+      "1117": "230",
+      "1135": "248",
+      "1147": "260",
+      "1150": "263",
+      "1153": "266",
+      "1168": "281",
+      "1171": "284",
+      "1180": "293",
+      "1183": "296",
+      "1186": "299",
+      "1189": "302",
+      "1192": "305",
+      "1195": "308",
+      "1198": "311",
+      "1201": "314",
+      "1204": "317",
+      "1207": "320",
+      "1210": "323",
+      "1213": "326",
+      "1216": "329",
+      "1219": "332",
+      "1222": "335",
+      "1225": "338",
+      "1237": "350",
+      "1240": "353",
+      "1243": "356",
+      "1246": "359",
+      "1249": "362",
+      "1252": "365",
+      "1255": "368",
+      "1258": "371",
+      "1261": "374",
+      "1264": "377",
+      "1273": "386",
+      "1276": "389",
+      "1279": "392",
+      "1282": "395"
+	}
+    // Maps the API's icons to the ones from https://erikflowers.github.io/weather-icons/
+    var weatherIconsMap = {
+      "01d": "wi-day-sunny",
+      "01n": "wi-night-clear",
+      "02d": "wi-day-cloudy",
+      "02n": "wi-night-cloudy",
+      "03d": "wi-cloud",
+      "03n": "wi-cloud",
+      "04d": "wi-cloudy",
+      "04n": "wi-cloudy",
+      "09d": "wi-showers",
+      "09n": "wi-showers",
+      "10d": "wi-day-hail",
+      "10n": "wi-night-hail",
+      "11d": "wi-thunderstorm",
+      "11n": "wi-thunderstorm",
+      "13d": "wi-snow",
+      "13n": "wi-snow",
+      "50d": "wi-fog",
+      "50n": "wi-fog"
+    };
+
+    var weatherApiForecast = [];
+    var openWeatherApiForecast = [];
+
+    function getOpenWeatherMapApiForecast(lat, lon) {
+      var apiUrl =
+        "http://api.openweathermap.org/data/2.5/forecast/daily?APPID=9b4bbf30228eb8528d36e79d05da1fac&" +
+        "lat=" + lat + "&lon=" + lon + "&units=imperial&cnt=5";
+
+      $.getJSON(apiUrl, function(data) {
+        // process returned data
+        openWeatherApiForecast = data;
+        processOpenWeatherMapApiForecast(openWeatherApiForecast);
+      }).done(function() {
+        //console.log( "second success" );
+      })
+      .fail(function() {
+        //console.log( "error" );
+      })
+      .always(function() {
+        //console.log( "complete" );
+      });      
+    }
+
+    // Update view values from passed forecast
+    function processOpenWeatherMapApiForecast(forecast){
+      console.log(forecast);
+      var today = forecast.list[0];
+
+      // Get today's basic data
+      $("#todayTemp").text(Math.round(today.temp.day) + "°");
+      $("#todayDesc").text(toCamelCase(today.weather[0].description));
+      $("#todayHigh").text(Math.round(today.temp.max));
+      $("#todayLow").text(Math.round(today.temp.min));
+      $("#todayIcon").addClass(weatherIconsMap[today.weather[0].icon]);
+
+      $("#todayHumidity").text(today.humidity);
+      $("#todayWind").text(today.speed);
+      
+      // Following days data
+      for(var i = 1; i < (forecast.list).length; i++){
+        var day = forecast.list[i];
+
+        // Day short format e.g. Mon
+        var dayName = getFormattedDateEpoch(day.dt).substring(0,3);
+
+        // weather icon from map
+        var weatherIcon = weatherIconsMap[day.weather[0].icon];
+
+        $("#forecast-day-" + i + "-name").text(dayName);
+        $("#forecast-day-" + i + "-icon").addClass(weatherIcon);
+        $("#forecast-day-" + i + "-main").text(Math.round(day.temp.day) + "°");
+        $("#forecast-day-" + i + "-ht").text(Math.round(day.temp.max) + "°");
+        $("#forecast-day-" + i + "-lt").text(Math.round(day.temp.min) + "°");
+      }      
+    }
+
+    function getWeatherApiForecast(zipCode) {
+      var apiUrl =
+        "http://api.weatherapi.com/v1/forecast.json?key=62f8e26e147b4c97b76172308220806&q=" +
+        zipCode +
+        "&days=10&aqi=yes&alerts=no";
+
+      $.ajax({
+        type: "GET",
+        url: apiUrl,
+        cache: true,
+        headers: {
+          "Access-Control-Allow-Headers": "x-requested-with"
+        },
+        success: function (forecast) {
+          weatherApiForecast = forecast;
+          processWeatherApiForecast(forecast);
+        },
+        error: function (error) {
+          console.log("Error with ajax: " + error);
+        }
+      });
+    }
+
+    function processWeatherApiForecast(forecast){
+
+      var fToday = forecast.forecast.forecastday[0];
+      var fTomorrow = forecast.forecast.forecastday[1];
+      var fTheNext = forecast.forecast.forecastday[2];
+
+      //console.log(forecast);
+      //console.log(fToday);
+      //console.log(fTomorrow);
+      //console.log(fTheNext);
+      
+      // Get today's basic data
+      $("#todayTemp").text(Math.round(forecast.current.temp_f));
+      $("#todayDesc").text(forecast.current.condition.text);
+      $("#todayHumidity").text(forecast.current.humidity);
+      $("#todayWind").text(forecast.current.gust_mph);
+      $("#todayHigh").text(fToday.day.maxtemp_f);
+      $("#todayLow").text(fToday.day.mintemp_f);
+      // day
+      $("#todayIcon").attr("src", "weather-icons/day/" + weatherConditions[forecast.current.condition.code] + ".svg");
+      
+
+        // Following days data
+      for(var i = 1; i < (forecast.forecast.forecastday).length; i++){
+        var forecastday = forecast.forecast.forecastday[i];
+
+        console.log(forecastday);
+        //console.log(forecastday.date);
+        //console.log(getFormattedDate(forecastday.date));
+
+        // Day short format e.g. Mon
+        var dayName = getFormattedDate(forecastday.date).substring(0,3);
+        console.log(dayName);
+
+        // weather icon from map
+        var weatherIcon = "weather-icons/day/" + weatherConditions[forecastday.day.condition.code] + ".svg";
+        console.log(weatherIcon);
+
+        $("#forecast-day-" + i + "-name").text(dayName);
+        //$("#forecast-day-" + i + "-icon").addClass(weatherIcon);
+        //$("#forecast-day-" + i + "-main").text(Math.round(day.temp.day));
+        $("#forecast-day-" + i + "-ht").text(Math.round(forecastday.day.maxtemp_f));
+        $("#forecast-day-" + i + "-lt").text(Math.round(forecastday.day.mintemp_f));
+
+        $("#forecast-day-" + i + "-icon").attr("src", weatherIcon);
+        //$("#todayIcon").attr("src", "weather-icons/day/" + weatherConditions[forecast.current.condition.code] + ".svg");
+      }
+
+
+
+      //var dayName = getFormattedDate(fToday.date).substring(0,3);
+      //console.log(dayName);
+
+    }
+
+    // Applies the following format to date: WeekDay, Month Day, Year
+    function getFormattedDate(date){
+      var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date(date).toLocaleDateString("en-US",options);
+    }
+    function getFormattedDateEpoch(date){
+      var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date(date * 1000).toLocaleDateString("en-US",options);
+    }
+    function toCamelCase(str) {
+      var arr = str.split(" ").map(
+        function(sentence){
+          return sentence.charAt(0).toUpperCase() + sentence.substring(1);
+        }
+      );
+      return arr.join(" ");
+    }
+      
+    var WeatherCard = function () {
+        //getWeatherApiForecast(configZip);
+        getOpenWeatherMapApiForecast(configLat, configLon);
+    };
+
+// start WeatherCard
+$( document ).ready( function() {
+    var weatherCard = WeatherCard();
+    
+    setTimeout(function () {
+        //alert('Reloading Page');
+        console.log('page reloaded ' + new Date().toTimeString());
+        //location.reload(true);
+        weatherCard = WeatherCard();
+
+      }, 900000); // 15 minutes = 900000
+});
+  </script>
+  <style>
+
+a {
+  color: white;
+  opacity: 0.6;
+  text-decoration: none;
+}
+
+a:hover,
+a:active,
+a:focus {
+  color: white;
+  text-decoration: none;
+  opacity: 1;
+}
+
+.active {
+  color: white;
+  text-decoration: none;
+  opacity: 1;
+}
+
+body {
+  background-color: #f4f6f7;
+
+      background-image: url(fethi-bouhaouchine-1PUverfGJUI-unsplash.jpg);
+			background-position: center center;
+			background-repeat:  no-repeat;
+			background-attachment: fixed;
+			background-size:  cover;
+			background-color: #999;
+}
+
+#wrapper {
+  background-color: #28688c;
+  box-shadow: 1px 5px 25px 3px #444;
+  border-radius: 10px;
+  margin: 100px auto;
+  max-width: 720px;
+  padding: 0px;
+  color: white;
+}
+
+#current-weather {
+  padding: 15px;
+}
+
+#todayTemp {
+  font-size: 5.5em;
+  line-height: 0.7;
+  text-align: center;
+}
+
+#todayDesc {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.day-weather-box {
+  border: 1px solid #28688c;
+  background-color: #2e7fa1;
+  border-radius: 5px;
+  height: 5em;
+}
+
+.day-weather-box p {
+  margin-bottom: 0;
+}
+
+.side-weather-info {
+  padding: 0px 10px;
+}
+
+.day-weather-inner-box {
+  display: inline-flex;
+  margin: 14px auto;
+  padding: 0px 5px;
+}
+
+.forecast-main {
+  padding: 0px 0px 0px 30px;
+}
+
+.forecast-icon {
+  font-size: 25px;
+  margin-top: -70px;
+  margin-left: 15px;
+  text-align: center;
+}
+
+.modal-body p {
+  color: #333;
+}
+
+  </style>
+  <link rel="stylesheet" href="css/weather-icons.css">
+</head>
+
+<body>
+  
+  <div class="container" id="wrapper">
+    <div class="container-fluid" id="current-weather">
+      <div class="row">
+  
+        <!-- Right panel -->
+        <div class="col-md-4 col-sm-5">
+          <p id="todayTemp"></p>
+          <p id="todayDesc"></p>
+        </div>
+  
+        <!-- Center panel -->
+        <div class="col-md-4 col-sm-5" style="padding-top: 15px; text-align: center;">
+          <div class="row">
+            <!--<img id="todayIcon" style="max-height: 95px;">-->
+            <i class="wi mx-auto" id="todayIcon" style="font-size: 85px;"></i>
+          </div>
+        </div>
+  
+        <!-- Left panel -->
+        <div class="col-md-4 col-sm-5 row" style="text-align: right;">
+          <div class="col-md-12 col-sm-3 col-xs-3 side-weather-info">
+            <h6>Humidity: <spam id="todayHumidity"></spam>%</h6>
+          </div>
+          <div class="col-md-12 col-sm-3 col-xs-3 side-weather-info">
+            <h6>Wind: <spam id="todayWind"></spam> m/s</h6>
+          </div>
+          <div class="col-md-12 col-sm-3 col-xs-3 side-weather-info">
+            <h6>High: <spam id="todayHigh"></spam>°</h6>
+          </div>
+          <div class="col-md-12 col-sm-3 col-xs-3 side-weather-info">
+            <h6>Low: <spam id="todayLow"></spam>°</h6>
+          </div>
+        </div>
+  
+      </div>
+    </div>
+  
+  <!-- 4 days forecast -->
+  <div class="container-fluid">
+    <div class="row" style="padding: 2px;">
+      
+      <!-- Day 1 -->
+      <div class="col-md-3 col-sm-6 day-weather-box">
+        <div class="col-sm-12 day-weather-inner-box">
+          <div class="col-sm-8 forecast-main">
+            <p id="forecast-day-1-name"></p>
+            <div class="row">
+              <h5 id="forecast-day-1-main">°</h5>
+              <i class="wi forecast-icon" id="forecast-day-1-icon"></i>
+            </div>
+          </div>
+          <div class="col-sm-4 forecast-min-low">
+            <p><spam class="high-temperature" id="forecast-day-1-ht"></spam></p>
+            <p><spam class="low-temperature" id="forecast-day-1-lt"></spam></p>
+          </div>
+        </div>
+      </div>
+
+      
+      <!-- Day 2 -->
+      <div class="col-md-3 col-sm-6 day-weather-box">
+        <div class="col-sm-12 day-weather-inner-box">
+          <div class="col-sm-8 forecast-main">
+            <p id="forecast-day-2-name"></p>
+            <div class="row">
+              <h5 id="forecast-day-2-main">°</h5>
+              <i class="wi forecast-icon" id="forecast-day-2-icon"></i>
+            </div>
+          </div>
+          <div class="col-sm-4 forecast-min-low">
+            <p><spam class="high-temperature" id="forecast-day-2-ht"></spam></p>
+            <p><spam class="low-temperature" id="forecast-day-2-lt"></spam></p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Day 3 -->
+      <div class="col-md-3 col-sm-6 day-weather-box">
+        <div class="col-sm-12 day-weather-inner-box">
+          <div class="col-sm-8 forecast-main">
+            <p id="forecast-day-3-name"></p>
+            <div class="row">
+              <h5 id="forecast-day-3-main">°</h5>
+              <i class="wi forecast-icon" id="forecast-day-3-icon"></i>
+            </div>
+          </div>
+          <div class="col-sm-4 forecast-min-low">
+            <p><spam class="high-temperature" id="forecast-day-3-ht"></spam></p>
+            <p><spam class="low-temperature" id="forecast-day-3-lt"></spam></p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Day 4 -->
+      <div class="col-md-3 col-sm-6 day-weather-box">
+        <div class="col-sm-12 day-weather-inner-box">
+          <div class="col-sm-8 forecast-main">
+            <p id="forecast-day-4-name"></p>
+            <div class="row">
+              <h5 id="forecast-day-4-main">°</h5>
+              <i class="wi forecast-icon" id="forecast-day-4-icon"></i>
+            </div>
+          </div>
+          <div class="col-sm-4 forecast-min-low">
+            <p><spam class="high-temperature" id="forecast-day-4-ht"></spam></p>
+            <p><spam class="low-temperature" id="forecast-day-4-lt"></spam></p>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  </div>
+
+<script>
+</script>
+
+</body>
+</html>

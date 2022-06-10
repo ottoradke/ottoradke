@@ -99,7 +99,7 @@
 
     function getOpenWeatherMapApiForecast(lat, lon) {
       var apiUrl =
-        "http://api.openweathermap.org/data/2.5/forecast/daily?APPID=9b4bbf30228eb8528d36e79d05da1fac&" +
+        "https://api.openweathermap.org/data/2.5/forecast/daily?APPID=9b4bbf30228eb8528d36e79d05da1fac&" +
         "lat=" + lat + "&lon=" + lon + "&units=imperial&cnt=5";
 
       $.getJSON(apiUrl, function(data) {
